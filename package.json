@@ -1,0 +1,61 @@
+{
+  "name": "apple-search-ads-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server exposing the full Apple Search Ads / Apple Ads Campaign Management API v5 (74 tools, 1:1 endpoint coverage).",
+  "type": "module",
+  "bin": {
+    "apple-search-ads-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "apple-search-ads",
+    "apple-ads",
+    "search-ads",
+    "asa",
+    "ios-marketing",
+    "user-acquisition"
+  ],
+  "author": {
+    "name": "Yiğithan Yücedağ",
+    "email": "yigithanyucedag@gmail.com",
+    "url": "https://github.com/yigithanyucedag"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yigithanyucedag/apple-search-ads-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yigithanyucedag/apple-search-ads-mcp/issues"
+  },
+  "homepage": "https://github.com/yigithanyucedag/apple-search-ads-mcp#readme",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "jose": "^5.9.6",
+    "undici": "^6.21.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.7.2"
+  }
+}

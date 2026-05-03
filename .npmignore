@@ -1,0 +1,12 @@
+src/
+.github/
+.env
+.env.example
+.env.local
+.gitignore
+.npmignore
+tsconfig.json
+*.log
+*.p8
+private-key*.pem
+.DS_Store
