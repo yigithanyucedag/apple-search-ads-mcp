@@ -1,6 +1,6 @@
 # apple-search-ads-mcp
 
-[![CI](https://github.com/yigithanyucedag/apple-search-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/yigithanyucedag/apple-search-ads-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/AppVisionOS/apple-search-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/AppVisionOS/apple-search-ads-mcp/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/apple-search-ads-mcp.svg)](https://www.npmjs.com/package/apple-search-ads-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/apple-search-ads-mcp.svg)](https://www.npmjs.com/package/apple-search-ads-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,7 +15,7 @@ A Model Context Protocol (MCP) server that wraps the **full Apple Search Ads (no
 ## Quick install
 
 ```bash
-git clone https://github.com/yigithanyucedag/apple-search-ads-mcp.git
+git clone https://github.com/AppVisionOS/apple-search-ads-mcp.git
 cd apple-search-ads-mcp
 npm install
 npm run build

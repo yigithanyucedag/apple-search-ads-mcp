@@ -34,7 +34,7 @@ const supplySourceEnum = z
     "APPSTORE_PRODUCT_PAGES_BROWSE",
   ])
   .describe(
-    "Where the ads can serve. Most campaigns use APPSTORE_SEARCH_RESULTS.",
+    "Where the ads can serve. Maximize Conversions only supports APPSTORE_SEARCH_RESULTS.",
   );
 
 const campaignStatusEnum = z.enum(["ENABLED", "PAUSED"]);
@@ -44,14 +44,18 @@ const paymentModelEnum = z.enum(["LOC", "PAYG", "NOTCARD"]);
 
 const biddingStrategyEnum = z
   .enum(["MANUAL_CPT", "MAX_CONVERSIONS"])
-  .describe("MANUAL_CPT (classic) or MAX_CONVERSIONS (v5.5 automated bidding).");
+  .describe(
+    "MANUAL_CPT (default) or MAX_CONVERSIONS. MAX_CONVERSIONS requires targetCpa and only supports APPSTORE_SEARCH_RESULTS.",
+  );
 
 const campaignBaseFields = {
   name: z.string().min(1).max(200).describe("Campaign name (max 200 chars)."),
   adamId: z
     .number()
     .int()
-    .describe("App's iTunes/Adam ID — find via the search_apps tool."),
+    .describe(
+      "App's iTunes/Adam ID. Use search_apps to retrieve it. Use apps_eligibilities_find to confirm the app is eligible to promote.",
+    ),
   biddingStrategy: biddingStrategyEnum.optional(),
   targetCpa: moneyField
     .optional()
@@ -59,52 +63,40 @@ const campaignBaseFields = {
   budgetAmount: moneyField
     .optional()
     .describe(
-      "Total campaign budget. Required for PAYG/NOTCARD; not used for LOC.",
+      "Optional total campaign budget. Per Apple: budgetAmount can ONLY be set on create — campaigns_update cannot add or change it later.",
     ),
-  dailyBudgetAmount: moneyField.optional().describe("Daily campaign budget."),
+  dailyBudgetAmount: moneyField
+    .optional()
+    .describe("Required for the daily budget."),
   countriesOrRegions: z
     .array(z.string().length(2))
     .min(1)
-    .describe("ISO 3166-1 alpha-2 country codes the campaign targets."),
-  adChannelType: adChannelEnum.describe(
-    "SEARCH (App Store search results) or DISPLAY (Today/Search/Product page tabs).",
-  ),
-  supplySources: z
-    .array(supplySourceEnum)
-    .min(1)
-    .describe("One or more ad placements."),
-  billingEvent: billingEventEnum.describe(
-    "TAPS for CPT campaigns, IMPRESSIONS for Today/Search-Tab CPM campaigns.",
-  ),
+    .describe(
+      "ISO 3166-1 alpha-2 country codes. Group multiple markets in a single campaign by listing them here.",
+    ),
+  adChannelType: adChannelEnum,
+  supplySources: z.array(supplySourceEnum).min(1),
+  billingEvent: billingEventEnum,
   paymentModel: paymentModelEnum.optional(),
   locInvoiceDetails: locInvoiceDetailsSchema.optional(),
-  status: campaignStatusEnum.optional().describe("Defaults to ENABLED."),
-  startTime: z
-    .string()
-    .optional()
-    .describe("ISO 8601 start datetime (UTC). Defaults to now."),
-  endTime: z
-    .string()
-    .optional()
-    .describe("ISO 8601 end datetime (UTC). Optional."),
+  status: campaignStatusEnum.optional(),
+  startTime: z.string().optional().describe("ISO 8601 datetime."),
+  endTime: z.string().optional().describe("ISO 8601 datetime."),
   budgetOrders: z
     .array(z.number().int())
     .optional()
-    .describe("LOC-only: array of budget order IDs."),
+    .describe("LOC accounts: array of budget order IDs."),
   extra: z
     .record(z.unknown())
     .optional()
-    .describe(
-      "Escape hatch: extra fields merged into the campaign object verbatim.",
-    ),
+    .describe("Extra fields merged into the request body verbatim."),
 } as const;
 
 export const campaignTools: ToolDef[] = [
   {
     name: "campaigns_create",
     description:
-      "Create a new campaign. The minimum useful body specifies adamId, name, " +
-      "countriesOrRegions, adChannelType, supplySources, billingEvent, and a budget.",
+      "Creates a campaign to promote an app. Prerequisites per Apple's doc: call search_apps to obtain the adamId, and apps_eligibilities_find to confirm the app is eligible. dailyBudgetAmount is required; the optional budgetAmount can ONLY be set here — campaigns_update cannot add or change it. To use the Maximize Conversions bid strategy, set biddingStrategy=MAX_CONVERSIONS, provide targetCpa, and use only APPSTORE_SEARCH_RESULTS in supplySources.",
     inputShape: { ...campaignBaseFields, orgId: orgIdField },
     handler: async (input, { client }) => {
       const { extra, orgId, ...rest } = input;
@@ -121,7 +113,8 @@ export const campaignTools: ToolDef[] = [
 
   {
     name: "campaigns_get",
-    description: "Fetch a single campaign by ID.",
+    description:
+      "Fetches a specific campaign by campaign identifier. Per Apple: returns data for the specified campaign and supports partial fetch.",
     inputShape: {
       campaignId: z.number().int(),
       orgId: orgIdField,
@@ -138,7 +131,7 @@ export const campaignTools: ToolDef[] = [
   {
     name: "campaigns_list",
     description:
-      "List all campaigns in the org (paginated). For richer filtering use campaigns_find.",
+      "Fetches all of an organization's assigned campaigns. Supports partial fetch and pagination (default page size 20, max 1000 per Apple's general limit). For filtering use campaigns_find.",
     inputShape: {
       limit: limitField,
       offset: offsetField,
@@ -157,7 +150,7 @@ export const campaignTools: ToolDef[] = [
   {
     name: "campaigns_find",
     description:
-      "Search campaigns with a selector — supports conditions (EQUALS/IN/CONTAINS/...), orderBy, and pagination.",
+      "Fetches campaigns with selector operators. Per Apple: if you don't specify selector conditions, all campaign objects return in the response.",
     inputShape: {
       selector: selectorSchema,
       orgId: orgIdField,
@@ -176,8 +169,7 @@ export const campaignTools: ToolDef[] = [
   {
     name: "campaigns_update",
     description:
-      "Update a campaign. Pass only the fields you want to change. " +
-      "Use clearGeoTargetingOnCountryOrRegionChange=true if you change countriesOrRegions.",
+      "Updates a campaign with a campaign identifier. Per Apple: use this to update countries or regions and to set the campaign budget; partial updates are supported and the body must use the { campaign: {...} } envelope. Switching to MAX_CONVERSIONS hides ad-group and keyword bids (returned as 0) and requires targetCpa plus an automated ad group; switching back to MANUAL_CPT requires targetCpa=null and restores prior bids if the campaign was previously manual. budgetAmount cannot be added via this endpoint — set it on create.",
     inputShape: {
       campaignId: z.number().int(),
       campaign: z
@@ -186,7 +178,6 @@ export const campaignTools: ToolDef[] = [
           status: campaignStatusEnum.optional(),
           biddingStrategy: biddingStrategyEnum.optional(),
           targetCpa: moneyField.optional(),
-          budgetAmount: moneyField.optional(),
           dailyBudgetAmount: moneyField.optional(),
           countriesOrRegions: z.array(z.string().length(2)).optional(),
           locInvoiceDetails: locInvoiceDetailsSchema.optional(),
@@ -195,12 +186,12 @@ export const campaignTools: ToolDef[] = [
           budgetOrders: z.array(z.number().int()).optional(),
         })
         .passthrough()
-        .describe("Partial campaign object — fields you want to update."),
+        .describe("Partial campaign object — only the fields you want to update."),
       clearGeoTargetingOnCountryOrRegionChange: z
         .boolean()
         .optional()
         .describe(
-          "Set to true if changing countriesOrRegions, to clear ad-group geo targeting.",
+          "Set true when changing countriesOrRegions, to clear ad-group geo targeting.",
         ),
       orgId: orgIdField,
     },
@@ -223,7 +214,8 @@ export const campaignTools: ToolDef[] = [
 
   {
     name: "campaigns_delete",
-    description: "Permanently delete a campaign. Cannot be undone.",
+    description:
+      "Deletes a specific campaign by campaign identifier. Apple's documentation does not state whether this is a soft or hard delete.",
     inputShape: {
       campaignId: z.number().int(),
       orgId: orgIdField,

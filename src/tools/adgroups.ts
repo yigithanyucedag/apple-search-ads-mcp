@@ -30,15 +30,9 @@ const ageRangeSchema = z
 
 const targetingSchema = z
   .object({
-    age: z
-      .object({
-        included: z.array(ageRangeSchema).optional(),
-      })
-      .optional(),
+    age: z.object({ included: z.array(ageRangeSchema).optional() }).optional(),
     gender: z
-      .object({
-        included: z.array(z.enum(["M", "F"])).optional(),
-      })
+      .object({ included: z.array(z.enum(["M", "F"])).optional() })
       .optional(),
     deviceClass: z
       .object({
@@ -62,28 +56,26 @@ const targetingSchema = z
   })
   .passthrough()
   .describe(
-    "Audience targeting. All dimensions are { included: [...], excluded: [...] }. " +
-      "Pass extra fields verbatim (e.g. customAudiences) — they're forwarded to Apple.",
+    "TargetingDimensions object. Per Apple: cannot be created or updated with geotargeting on campaigns that target multiple countriesOrRegions.",
   );
 
 const adGroupBaseFields = {
   name: z.string().min(1).max(200),
-  startTime: z.string().describe("ISO 8601 datetime in UTC."),
+  startTime: z.string().describe("ISO 8601 datetime."),
   endTime: z.string().optional(),
-  defaultBidAmount: moneyField.describe("Cost per tap / install bid."),
-  cpaGoal: moneyField.optional().describe("Optional cost-per-acquisition target."),
+  defaultBidAmount: moneyField,
+  cpaGoal: moneyField.optional(),
   biddingStrategy: z
     .enum(["MANUAL_CPT", "MAX_CONVERSIONS"])
     .optional()
-    .describe("v5.5: MAX_CONVERSIONS enables automated bidding."),
+    .describe(
+      "Per Apple: in Maximize Conversions campaigns, defaultBidAmount is automatically managed and returned as 0.",
+    ),
   automatedKeywordsOptIn: z
     .boolean()
     .optional()
-    .describe("Enable Apple's automatic keyword discovery."),
-  pricingModel: z
-    .enum(["CPC", "CPM"])
-    .optional()
-    .describe("Defaults are inferred from campaign.billingEvent."),
+    .describe("Enables Apple's Search Match keyword discovery."),
+  pricingModel: z.enum(["CPC", "CPM"]).optional(),
   status: z.enum(["ENABLED", "PAUSED"]).optional(),
   targetingDimensions: targetingSchema.optional(),
   extra: z.record(z.unknown()).optional(),
@@ -93,7 +85,7 @@ export const adGroupTools: ToolDef[] = [
   {
     name: "adgroups_create",
     description:
-      "Create an ad group within a campaign. Bid + targeting live here, not on the campaign.",
+      "Creates an ad group as part of a campaign. Per Apple: ad groups cannot be created with geotargeting on campaigns that target multiple countriesOrRegions. Maximize Conversions campaigns require Search Match and an automatically-created ad group; without one Apple returns AUTOMATED_KEYWORDS_REQUIRED_AD_GROUP_MISSING and the campaign won't run. In automated ad groups: Search Match cannot be turned off; audience settings and keywords cannot be edited (but additional standard ad groups can be added with audience and keywords; negative keywords can also be added).",
     inputShape: {
       campaignId: z.number().int(),
       ...adGroupBaseFields,
@@ -114,7 +106,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_get",
-    description: "Fetch a single ad group.",
+    description:
+      "Fetches a specific ad group with a campaign and ad group identifier. Supports partial fetch.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -131,7 +124,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_list",
-    description: "List all ad groups in a campaign (paginated).",
+    description:
+      "Fetches all ad groups within a campaign. Supports partial fetch and pagination (max 1000 per page per Apple's general limit).",
     inputShape: {
       campaignId: z.number().int(),
       limit: limitField,
@@ -150,7 +144,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_find_in_campaign",
-    description: "Find ad groups within a single campaign using a selector.",
+    description:
+      "Fetches ad groups within a single campaign using a selector. Per Apple: if you don't specify selector conditions, all ad groups in the campaign return.",
     inputShape: {
       campaignId: z.number().int(),
       selector: selectorSchema,
@@ -169,7 +164,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_find_org_wide",
-    description: "Find ad groups across the entire org with a selector.",
+    description:
+      "Fetches ad groups within an organization using a selector. Per Apple: if you don't specify selector conditions, all of your ad groups return.",
     inputShape: {
       selector: selectorSchema,
       orgId: orgIdField,
@@ -187,7 +183,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_update",
-    description: "Update an ad group. Pass only the fields you want to change.",
+    description:
+      "Updates an ad group with an ad group identifier. Partial updates are supported. Per Apple: ad groups cannot be updated with geotargeting on campaigns that target multiple countriesOrRegions — first call campaigns_update to clear that, then apply targetingDimensions here. For automated ad groups only the name field can be updated; defaultBidAmount cannot be set to non-zero/non-null, cpaGoal cannot be set to non-null, biddingStrategy and automatedKeywordsRequired are read-only, and automatedKeywordsOptIn can be toggled.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -221,7 +218,8 @@ export const adGroupTools: ToolDef[] = [
 
   {
     name: "adgroups_delete",
-    description: "Delete an ad group.",
+    description:
+      "Deletes an ad group with a campaign and ad group identifier. Apple's documentation does not state whether this is a soft or hard delete.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),

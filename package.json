@@ -41,12 +41,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yigithanyucedag/apple-search-ads-mcp.git"
+    "url": "git+https://github.com/AppVisionOS/apple-search-ads-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/yigithanyucedag/apple-search-ads-mcp/issues"
+    "url": "https://github.com/AppVisionOS/apple-search-ads-mcp/issues"
   },
-  "homepage": "https://github.com/yigithanyucedag/apple-search-ads-mcp#readme",
+  "homepage": "https://github.com/AppVisionOS/apple-search-ads-mcp#readme",
   "engines": {
     "node": ">=18.17"
   },
