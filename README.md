@@ -34,21 +34,38 @@ claude mcp add apple-search-ads --scope user \
 
 ### 1. Get API credentials
 
-In the [Apple Ads UI](https://app-ads.apple.com), go to **Account Settings → API → Generate API Client**. You upload your **public** key here; Apple keeps the public half and gives you the **Client ID**, **Team ID**, and **Key ID**.
+The Apple Ads UI splits credentials across two screens. The **API** tab inside Account Settings only manages access for *third-party service providers*; for your own programmatic access, the flow goes through **User Management** first.
 
-Generate the key pair locally — **make sure it's PKCS#8**, not the legacy EC format:
+#### a) Invite an API user
+
+In [app-ads.apple.com](https://app-ads.apple.com) → **Account Settings → User Management → Invite User**:
+
+- Email: any address you control (can be your own; Apple requires a separate Apple ID for the API user)
+- Role: pick one with API permissions (e.g. **API Account Manager**)
+- Send the invite, then accept it from the invited inbox
+
+#### b) Generate the key pair locally
+
+While the invite is being processed, generate an ES256 key pair on your machine. **Make sure it's PKCS#8** — Apple's `.p8` examples and the older `openssl ecparam` output are *not* PKCS#8 and `jose` can't load them.
 
 ```bash
 # CORRECT — produces PKCS#8 (-----BEGIN PRIVATE KEY-----)
 openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out asa-private.p8
 openssl ec -in asa-private.p8 -pubout -out asa-public.pem
 
-# WRONG — produces traditional EC (-----BEGIN EC PRIVATE KEY-----), jose can't load it.
-# If you already did this, convert with:
+# If you already produced traditional EC (-----BEGIN EC PRIVATE KEY-----), convert it:
 #   openssl pkcs8 -topk8 -nocrypt -in asa-private.p8 -out asa-private-pkcs8.p8
 ```
 
-Paste `asa-public.pem`'s contents into the textarea, hit **Generate API Client**, copy the three IDs.
+Keep `asa-private.p8` somewhere safe (e.g. `~/.apple-search-ads/`, `chmod 600`). You'll only paste the **public** half into Apple.
+
+#### c) Generate the API client
+
+Sign out and sign back in **as the invited API user** (not the admin account). Go to **Account Settings → API**. You'll see a **Client Credentials** screen with a *Public Key* textarea — this only appears for users who hold the API role.
+
+1. Paste the contents of `asa-public.pem` (with the `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` markers).
+2. Click **Generate API Client**.
+3. Copy the three values Apple shows you: **Client ID**, **Team ID**, **Key ID** — these don't reappear later.
 
 ### 2. Install
 
