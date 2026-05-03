@@ -1,22 +1,19 @@
 import { z } from "zod";
 import { limitField, offsetField, orgIdField, unwrap, type ToolDef } from "./_shared.js";
 
-const geoEntityEnum = z.enum(["Country", "AdminArea", "Locality"]).describe(
-  "v5 only supports Country / AdminArea / Locality. Postal-code targeting is not in v5.",
-);
+const geoEntityEnum = z.enum(["Country", "AdminArea", "Locality"]);
 
 export const searchTools: ToolDef[] = [
   {
     name: "search_apps",
     description:
-      "Search the App Store for apps to target / advertise. Returns adamId, name, " +
-      "developerName, and country availability. You need adamId to create campaigns.",
+      "Searches for iOS apps to promote in a campaign. Per Apple: prefix-matching algorithm requiring a minimum of three characters; spaces are allowed in the pattern; quoted search strings should be HTML-encoded. Returns adamId, which is consumed by campaigns_create and by AppDownloaderCriteria in TargetingDimensions.",
     inputShape: {
-      query: z.string().min(1).describe("App name or developer keyword."),
+      query: z.string().min(3),
       returnOwnedApps: z
         .boolean()
         .optional()
-        .describe("If true, restricts to apps owned by your team."),
+        .describe("Restrict results to apps belonging to your organization."),
       limit: limitField,
       offset: offsetField,
       orgId: orgIdField,
@@ -39,17 +36,16 @@ export const searchTools: ToolDef[] = [
   {
     name: "search_geo",
     description:
-      "Search geo entities by name (Country / AdminArea / Locality). Pass `countrycode` (lowercase, " +
-      "Apple's quirk) to scope an admin-area or locality search to one country.",
+      "Fetches a list of geolocations for targeting. Per Apple: campaigns that serve multiple countries or regions cannot use geotargeting. The query parameter uses prefix-matching with a minimum of three characters. Specify the entity (country, AdminArea, or Locality) and apply results to ad groups via CountryCriteria, AdminAreaCriteria, and LocalityCriteria in TargetingDimensions.",
     inputShape: {
-      query: z.string().min(1),
+      query: z.string().min(3).optional(),
       entity: geoEntityEnum,
       countrycode: z
         .string()
         .length(2)
         .optional()
         .describe(
-          "ISO 3166-1 alpha-2. Lowercase parameter name on purpose — Apple is case-sensitive here.",
+          "ISO alpha-2. Lowercase parameter name on purpose — Apple's documentation uses `countrycode`.",
         ),
       limit: limitField,
       offset: offsetField,
@@ -71,8 +67,7 @@ export const searchTools: ToolDef[] = [
   {
     name: "geo_lookup",
     description:
-      "Resolve geos by raw IDs. Each request item is { id: 'CountryCode|adminArea|locality', " +
-      "entity: 'Country|AdminArea|Locality' }. Useful when a report returns geo IDs you want named.",
+      "Gets geolocation details using one or more geo identifiers. Per Apple: pass each geo id in the request payload to receive the corresponding displayName and geolocation back.",
     inputShape: {
       requests: z
         .array(
@@ -83,12 +78,15 @@ export const searchTools: ToolDef[] = [
         )
         .min(1)
         .max(100),
+      limit: limitField,
+      offset: offsetField,
       orgId: orgIdField,
     },
-    handler: async ({ requests, orgId }, { client }) => {
+    handler: async ({ requests, limit, offset, orgId }, { client }) => {
       const res = await client.request({
         method: "POST",
         path: "/search/geo",
+        query: { limit, offset },
         body: requests,
         orgId,
       });

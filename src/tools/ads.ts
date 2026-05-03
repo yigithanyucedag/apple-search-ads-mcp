@@ -21,7 +21,9 @@ const adCreateSchema = z
     creativeId: z
       .number()
       .int()
-      .describe("Creative ID returned by creatives_create. Ads bind to creatives, not directly to CPPs."),
+      .describe(
+        "Creative identifier returned from creatives_create. Required.",
+      ),
     creativeType: creativeTypeEnum.optional(),
     status: z.enum(["ENABLED", "PAUSED"]).optional(),
   })
@@ -31,8 +33,7 @@ export const adTools: ToolDef[] = [
   {
     name: "ads_create",
     description:
-      "Create an ad inside an ad group. Ads bind a Creative (creativeId) to the ad group; " +
-      "the creative itself can wrap a Custom Product Page, Default Product Page, or Creative Set reference.",
+      "Creates an ad in an ad group with a creative. Per Apple: obtain creativeId from creatives_create first; the response id is your adId, used as the resource path in ads_get / ads_update / ads_delete and in ad-level reports. As of API v5.2 this endpoint also supports default product page ads. The adId is also output in the AdServices attribution framework.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -52,7 +53,7 @@ export const adTools: ToolDef[] = [
 
   {
     name: "ads_get",
-    description: "Fetch a single ad by ID.",
+    description: "Fetches an ad assigned to an ad group by identifier.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -70,7 +71,7 @@ export const adTools: ToolDef[] = [
 
   {
     name: "ads_list",
-    description: "List all ads in an ad group.",
+    description: "Fetches all ads assigned to an ad group.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -90,7 +91,8 @@ export const adTools: ToolDef[] = [
 
   {
     name: "ads_find_in_campaign",
-    description: "Find ads across all ad groups in a campaign with a selector.",
+    description:
+      "Finds ads within a campaign by selector criteria. Per Apple: if you don't specify selector conditions, all Ad objects return in the response.",
     inputShape: {
       campaignId: z.number().int(),
       selector: selectorSchema,
@@ -109,7 +111,8 @@ export const adTools: ToolDef[] = [
 
   {
     name: "ads_find_org_wide",
-    description: "Find ads across the entire org with a selector.",
+    description:
+      "Fetches ads within an organization by selector criteria. Per Apple: if you don't specify selector conditions, all Ad objects return in the response.",
     inputShape: {
       selector: selectorSchema,
       orgId: orgIdField,
@@ -128,7 +131,7 @@ export const adTools: ToolDef[] = [
   {
     name: "ads_update",
     description:
-      "Update an ad — typically status, name, or repointing to a different creativeId.",
+      "Updates an ad in an ad group. Per Apple: you can assign one active custom product page to an ad group. Partial updates supported.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -155,7 +158,8 @@ export const adTools: ToolDef[] = [
 
   {
     name: "ads_delete",
-    description: "Delete an ad.",
+    description:
+      "Deletes an ad assignment from an ad group. Returns a VoidResponse. Apple's documentation does not state whether this is a soft or hard delete.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),

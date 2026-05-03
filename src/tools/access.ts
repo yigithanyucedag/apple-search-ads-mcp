@@ -4,8 +4,7 @@ export const accessTools: ToolDef[] = [
   {
     name: "org_acls",
     description:
-      "List all org-level ACLs (orgs your API user can access, with orgName / currency / " +
-      "paymentModel / roleNames). Use this to discover the orgId for ASA_ORG_ID. Does not require X-AP-Context.",
+      "Fetches the roles and organizations the API caller has access to (UserAcl list). Per Apple: each role has access to all organizations or a subset of them; orgId behaves like a campaign group, and additional campaign groups can be created within an account to manage multiple clients or restrict user access. Does not require X-AP-Context.",
     inputShape: {},
     handler: async (_input, { client }) => {
       const res = await client.request({
@@ -19,7 +18,7 @@ export const accessTools: ToolDef[] = [
   {
     name: "me_user",
     description:
-      "Return information about the calling API user (userId, parentOrgId).",
+      "Fetches details of the API caller — userId and parentOrgId (MeDetail object).",
     inputShape: {},
     handler: async (_input, { client }) => {
       const res = await client.request({

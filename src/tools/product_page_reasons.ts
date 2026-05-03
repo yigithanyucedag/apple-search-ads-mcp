@@ -10,9 +10,7 @@ export const productPageReasonTools: ToolDef[] = [
   {
     name: "product_page_reasons_find",
     description:
-      "Find ad-creative rejection reasons (filterable by adamId, productPageId, " +
-      "assetGenId, countryOrRegion, languageCode, supplySource, reasonLevel). " +
-      "Use this to audit why a creative was rejected by Apple's review team.",
+      "Fetches ad creative rejection reasons for default or custom product page ads, filtered via Selector. See the ProductPageReason object for the rejection reason code enumerations and supported Selector condition operators.",
     inputShape: {
       selector: selectorSchema,
       orgId: orgIdField,
@@ -29,7 +27,8 @@ export const productPageReasonTools: ToolDef[] = [
   },
   {
     name: "product_page_reasons_get",
-    description: "Fetch a single rejection reason by ID.",
+    description:
+      "Fetches one ad creative rejection reason by productPageReasonId — the id field returned in a ProductPageReason object.",
     inputShape: {
       productPageReasonId: z.string(),
       orgId: orgIdField,

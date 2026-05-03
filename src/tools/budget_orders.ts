@@ -23,28 +23,33 @@ const supplySourceEnum = z.enum([
 const budgetOrderShape = {
   name: z.string(),
   budget: moneyField,
-  startDate: z.string().describe("YYYY-MM-DD."),
-  endDate: z.string().describe("YYYY-MM-DD."),
+  startDate: z.string(),
+  endDate: z.string(),
   primaryBuyerEmail: z.string().email().optional(),
   primaryBuyerName: z.string().optional(),
   billingEmail: z.string().email().optional(),
   clientName: z.string().optional(),
   orderNumber: z.string().optional(),
-  supplySources: z.array(supplySourceEnum).optional(),
+  supplySources: z
+    .array(supplySourceEnum)
+    .optional()
+    .describe(
+      "Optional as of API v5.3 — responses always include all possible values regardless.",
+    ),
 } as const;
 
 export const budgetOrderTools: ToolDef[] = [
   {
     name: "budget_orders_create",
     description:
-      "Create a budget order (LOC accounts only). Wraps Apple's `{bo, orgIds}` envelope.",
+      "Creates a budget order in the context of the org. Per Apple: the response id is your budget order id, which you then use to update the budget order or to fetch assigned, completed, and canceled budget orders. As of API v5.3 supplySources is optional.",
     inputShape: {
       ...budgetOrderShape,
       orgIds: z
         .array(z.number().int())
         .min(1)
         .max(1)
-        .describe("Apple currently supports exactly one orgId per budget order."),
+        .describe("Currently exactly one orgId is supported."),
       orgId: orgIdField,
     },
     handler: async (input, { client }) => {
@@ -61,7 +66,8 @@ export const budgetOrderTools: ToolDef[] = [
 
   {
     name: "budget_orders_get",
-    description: "Fetch a single budget order by ID.",
+    description:
+      "Fetches a specific budget order by id. Per Apple: returns assigned, completed, or canceled budget orders for the organization or campaign group. You can only fetch budget orders via this endpoint or budget_orders_list — invoicing cannot be set through the API.",
     inputShape: {
       budgetOrderId: z.number().int(),
       orgId: orgIdField,
@@ -77,7 +83,8 @@ export const budgetOrderTools: ToolDef[] = [
 
   {
     name: "budget_orders_list",
-    description: "List all budget orders in the org (paginated).",
+    description:
+      "Fetches all assigned budget orders for the organization. Per Apple: returns completed and canceled orders too. Budget orders also return when calling campaigns_create or campaigns_update. Invoicing cannot be set through the API.",
     inputShape: {
       limit: limitField,
       offset: offsetField,
@@ -96,8 +103,7 @@ export const budgetOrderTools: ToolDef[] = [
   {
     name: "budget_orders_update",
     description:
-      "Update a budget order. Most fields are editable post-creation; status is read-only. " +
-      "v5 has no delete endpoint for budget orders.",
+      "Updates an existing budget order. Per Apple: pass the id from budget_orders_create as the resource. v5 has no delete endpoint for budget orders.",
     inputShape: {
       budgetOrderId: z.number().int(),
       bo: z

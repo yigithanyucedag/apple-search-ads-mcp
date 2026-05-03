@@ -30,8 +30,7 @@ export const creativeTools: ToolDef[] = [
   {
     name: "creatives_create",
     description:
-      "Create a creative (a reference to a default product page, custom product page, " +
-      "or creative set). Ads bind to creatives via creativeId.",
+      "Creates a Creative object within an organization using a productPageId. The returned creativeId is consumed by ads_create.",
     inputShape: {
       ...creativeBaseShape,
       orgId: orgIdField,
@@ -50,7 +49,8 @@ export const creativeTools: ToolDef[] = [
   },
   {
     name: "creatives_list",
-    description: "List all creatives in the org (paginated).",
+    description:
+      "Fetches details of all assigned Creative objects for the organization. Paginated.",
     inputShape: {
       limit: limitField,
       offset: offsetField,
@@ -67,14 +67,20 @@ export const creativeTools: ToolDef[] = [
   },
   {
     name: "creatives_get",
-    description: "Fetch a single creative by ID.",
+    description:
+      "Fetches details of a Creative by creativeId. Set includeDeletedCreativeSetAssets=true to include deleted assets (excluded by default).",
     inputShape: {
       creativeId: z.number().int(),
+      includeDeletedCreativeSetAssets: z.boolean().optional(),
       orgId: orgIdField,
     },
-    handler: async ({ creativeId, orgId }, { client }) => {
+    handler: async (
+      { creativeId, includeDeletedCreativeSetAssets, orgId },
+      { client },
+    ) => {
       const res = await client.request({
         path: `/creatives/${creativeId}`,
+        query: { includeDeletedCreativeSetAssets },
         orgId,
       });
       return unwrap(res);
@@ -82,7 +88,8 @@ export const creativeTools: ToolDef[] = [
   },
   {
     name: "creatives_find",
-    description: "Find creatives across the org with a selector.",
+    description:
+      "Finds creatives using a Selector Condition. Per Apple: if you don't specify selector conditions, all creatives return; values are case-sensitive strings; orderBy supports the id and name fields.",
     inputShape: {
       selector: selectorSchema,
       orgId: orgIdField,

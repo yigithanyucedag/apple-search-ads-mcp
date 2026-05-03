@@ -8,12 +8,6 @@ import {
   type ToolDef,
 } from "./_shared.js";
 
-/**
- * Impression-share / share-of-voice reports follow an async pattern:
- * 1) POST /custom-reports — kicks off the report, returns reportId.
- * 2) GET  /custom-reports/{reportId} — poll until state=COMPLETED.
- * 3) Read rows from the response payload.
- */
 const sovSelectorSchema = z.object({
   conditions: z
     .array(
@@ -45,17 +39,16 @@ export const customReportTools: ToolDef[] = [
   {
     name: "custom_reports_create",
     description:
-      "Create an Impression Share (Share of Voice) report — async. Returns a reportId you " +
-      "poll with custom_reports_get until state=COMPLETED.",
+      "Obtains a reportId for an Impression Share report; the reportId is then used by custom_reports_get. Per Apple: max 10 reports created per 24 hours; date range up to 30 days for any period after 2020-04-12; report fields cannot be edited or removed; WEEKLY granularity cannot use custom startTime/endTime — use dateRange instead.",
     inputShape: {
       name: z.string().max(50),
-      startTime: z.string().describe("YYYY-MM-DD."),
-      endTime: z.string().describe("YYYY-MM-DD."),
+      startTime: z.string(),
+      endTime: z.string(),
       granularity: z.enum(["DAILY", "WEEKLY"]).optional(),
       dateRange: z
         .enum(["LAST_WEEK", "LAST_2_WEEKS", "LAST_4_WEEKS"])
         .optional()
-        .describe("Required when granularity=WEEKLY in some configurations."),
+        .describe("Required when granularity=WEEKLY (instead of startTime/endTime)."),
       selector: sovSelectorSchema.optional(),
       orgId: orgIdField,
     },
@@ -73,8 +66,7 @@ export const customReportTools: ToolDef[] = [
   {
     name: "custom_reports_get",
     description:
-      "Fetch a single Impression Share report — poll until state=COMPLETED to read rows " +
-      "(rank, impressionShare, lowImpressionShare, highImpressionShare, searchPopularity).",
+      "Fetches a single Impression Share report containing metrics and metadata, by reportId from custom_reports_create.",
     inputShape: {
       reportId: z.string(),
       orgId: orgIdField,
@@ -89,16 +81,25 @@ export const customReportTools: ToolDef[] = [
   },
   {
     name: "custom_reports_list",
-    description: "List all Impression Share reports created in the org.",
+    description:
+      "Fetches all Impression Share reports containing metrics and metadata. Per Apple: rate limit is 150 reports within 15 minutes; default page size is 20, max 50 (lower than other endpoints).",
     inputShape: {
+      field: z
+        .string()
+        .optional()
+        .describe("Field name to sort or filter on."),
+      sortOrder: z
+        .enum(["ASCENDING", "DESCENDING"])
+        .optional()
+        .describe("Order of grouped results."),
       limit: limitField,
       offset: offsetField,
       orgId: orgIdField,
     },
-    handler: async ({ limit, offset, orgId }, { client }) => {
+    handler: async ({ field, sortOrder, limit, offset, orgId }, { client }) => {
       const res = await client.request({
         path: "/custom-reports",
-        query: { limit, offset },
+        query: { field, sortOrder, limit, offset },
         orgId,
       });
       return unwrap(res);

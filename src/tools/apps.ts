@@ -10,8 +10,7 @@ export const appTools: ToolDef[] = [
   {
     name: "apps_get",
     description:
-      "Fetch App Store metadata for an app: appName, developerName, primaryGenre, " +
-      "secondaryGenre, iconPictureUrl, availableStorefronts, deviceClasses, etc.",
+      "Fetches app metadata. Per Apple: returns a MediaDetail (appName, artistName, availableStorefronts, deviceClasses, iconPictureUrl, isPreOrder, primaryGenre, secondaryGenre, primaryLanguage).",
     inputShape: {
       adamId: z.number().int(),
       orgId: orgIdField,
@@ -28,15 +27,16 @@ export const appTools: ToolDef[] = [
   {
     name: "apps_locale_details",
     description:
-      "Get localized default product-page details for an app (subtitle, short " +
-      "description, screenshots, app preview) per locale.",
+      "Fetches the localized default product page for an app. Returns MediaLocaleDetail. Set expand=true to include detailed app asset details per device.",
     inputShape: {
       adamId: z.number().int(),
+      expand: z.boolean().optional(),
       orgId: orgIdField,
     },
-    handler: async ({ adamId, orgId }, { client }) => {
+    handler: async ({ adamId, expand, orgId }, { client }) => {
       const res = await client.request({
         path: `/apps/${adamId}/locale-details`,
+        query: { expand },
         orgId,
       });
       return unwrap(res);
@@ -46,10 +46,11 @@ export const appTools: ToolDef[] = [
   {
     name: "apps_eligibilities_find",
     description:
-      "Find app-eligibility records by selector (filterable by supplySource, " +
-      "countryOrRegion, deviceClass, state).",
+      "Determines whether an app is eligible to promote in a campaign. Per Apple: filter via Selector by countryOrRegion, DeviceClass, AgeCriteria, or SupplySource.",
     inputShape: {
-      adamId: z.number().int(),
+      adamId: z
+        .union([z.string(), z.number().int()])
+        .describe("Per Apple's doc this path parameter is typed as string."),
       selector: selectorSchema,
       orgId: orgIdField,
     },
@@ -67,8 +68,7 @@ export const appTools: ToolDef[] = [
   {
     name: "apps_assets_find",
     description:
-      "Find App Store screenshots / app-preview assets for an app — returns " +
-      "assetGenIds you can use to author creatives or audit rejected assets.",
+      "Finds app asset metadata associated with an adamId. Per Apple: supports both default and custom product page ads.",
     inputShape: {
       adamId: z.number().int(),
       selector: selectorSchema,
@@ -88,8 +88,7 @@ export const appTools: ToolDef[] = [
   {
     name: "creative_app_preview_devices",
     description:
-      "List supported app-preview device-size mappings (e.g. IPHONE_61, IPAD_129). " +
-      "Used when authoring creatives or interpreting screenshot/preview metadata.",
+      "Fetches the complete list of supported app preview device-size mappings.",
     inputShape: {
       orgId: orgIdField,
     },
@@ -105,13 +104,18 @@ export const appTools: ToolDef[] = [
   {
     name: "countries_or_regions_list",
     description:
-      "List supported countries / regions with their default and supported product-page languages.",
+      "Fetches supported product page languages and language codes for countries or regions. Per Apple: pass `countriesOrRegions` as comma-separated ISO alpha-2 codes to filter.",
     inputShape: {
+      countriesOrRegions: z
+        .string()
+        .optional()
+        .describe("Comma-separated ISO alpha-2 country codes."),
       orgId: orgIdField,
     },
-    handler: async ({ orgId }, { client }) => {
+    handler: async ({ countriesOrRegions, orgId }, { client }) => {
       const res = await client.request({
         path: "/countries-or-regions",
+        query: { countriesOrRegions },
         orgId,
       });
       return unwrap(res);
@@ -120,14 +124,21 @@ export const appTools: ToolDef[] = [
 
   {
     name: "cpp_list",
-    description: "List Custom Product Pages for an app.",
+    description:
+      "Fetches metadata for all your custom product pages for an app. Per Apple: the response id is your productPageId, used by creatives_create to obtain a creativeId. Filter via `name` or `states`.",
     inputShape: {
       adamId: z.number().int(),
+      name: z.string().optional().describe("Filter by name."),
+      states: z
+        .string()
+        .optional()
+        .describe("Filter by states (e.g. visible / hidden)."),
       orgId: orgIdField,
     },
-    handler: async ({ adamId, orgId }, { client }) => {
+    handler: async ({ adamId, name, states, orgId }, { client }) => {
       const res = await client.request({
         path: `/apps/${adamId}/product-pages`,
+        query: { name, states },
         orgId,
       });
       return unwrap(res);
@@ -136,7 +147,8 @@ export const appTools: ToolDef[] = [
 
   {
     name: "cpp_get",
-    description: "Fetch a single Custom Product Page by ID.",
+    description:
+      "Fetches metadata for a specific custom product page. Use the returned productPageId with creatives_create to obtain a creativeId.",
     inputShape: {
       adamId: z.number().int(),
       productPageId: z.string(),
@@ -154,15 +166,23 @@ export const appTools: ToolDef[] = [
   {
     name: "cpp_locale_details",
     description:
-      "List the locales available for a Custom Product Page (with localized assets per locale).",
+      "Fetches localized custom-product-page metadata by identifier. Per Apple: filter by deviceClasses, languageCodes (e.g. `en-US`, comma-separated allowed), or languages (ISO alpha-2). Set expand=true for detailed asset values.",
     inputShape: {
       adamId: z.number().int(),
       productPageId: z.string(),
+      deviceClasses: z.string().optional(),
+      languageCodes: z.string().optional(),
+      languages: z.string().optional(),
+      expand: z.boolean().optional(),
       orgId: orgIdField,
     },
-    handler: async ({ adamId, productPageId, orgId }, { client }) => {
+    handler: async (
+      { adamId, productPageId, deviceClasses, languageCodes, languages, expand, orgId },
+      { client },
+    ) => {
       const res = await client.request({
         path: `/apps/${adamId}/product-pages/${productPageId}/locale-details`,
+        query: { deviceClasses, languageCodes, languages, expand },
         orgId,
       });
       return unwrap(res);

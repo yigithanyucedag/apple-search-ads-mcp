@@ -15,14 +15,10 @@ const moneyField = z.object({
 
 const targetingKeywordSchema = z
   .object({
-    text: z.string().min(1).describe("The keyword phrase."),
-    matchType: z
-      .enum(["BROAD", "EXACT"])
-      .describe(
-        "BROAD matches close variants and synonyms; EXACT matches only the literal phrase.",
-      ),
+    text: z.string().min(1),
+    matchType: z.enum(["BROAD", "EXACT"]),
     bidAmount: moneyField.describe(
-      "Per-keyword bid. Required unless an ad-group default bid covers it.",
+      "In Maximize Conversions campaigns this must be omitted, null, or 0 — Apple manages bids automatically.",
     ),
     status: z.enum(["ACTIVE", "PAUSED"]).optional(),
   })
@@ -30,7 +26,7 @@ const targetingKeywordSchema = z
 
 const targetingKeywordUpdateSchema = z
   .object({
-    id: z.number().int().describe("Keyword ID returned from a prior create/list call."),
+    id: z.number().int(),
     text: z.string().optional(),
     matchType: z.enum(["BROAD", "EXACT"]).optional(),
     bidAmount: moneyField.optional(),
@@ -60,7 +56,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "targeting_keywords_create",
     description:
-      "Bulk-create targeting (positive) keywords on an ad group. Pass up to 1000 per call.",
+      "Creates targeting keywords in an ad group. Per Apple: limit is 5,000 targeting keywords per campaign and per ad group; keywords belong to a specific ad group (unlike negative keywords, which can also live at the campaign level). Duplicate keywords cause the payload response to indicate an error but the call still returns HTTP 200. Cannot be created in automated ad groups; in Maximize Conversions campaigns bidAmount must be omitted, null, or 0.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -79,7 +75,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "targeting_keywords_get",
-    description: "Fetch a single targeting keyword by ID.",
+    description:
+      "Fetches a specific targeting keyword in an ad group. Supports partial fetch.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -99,7 +96,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "targeting_keywords_list",
-    description: "List targeting keywords on an ad group (paginated).",
+    description:
+      "Fetches all targeting keywords in an ad group. Supports partial fetch and pagination.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -122,8 +120,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "targeting_keywords_find",
     description:
-      "Find targeting keywords across all ad groups in a campaign with a selector. " +
-      "Apple does not expose a per-ad-group find — filter by adGroupId in the selector if needed.",
+      "Finds targeting keywords across all ad groups in a single campaign using a selector. Per Apple: if you don't specify any selector conditions, the API returns all keywords across all ad groups of the campaign.",
     inputShape: {
       campaignId: z.number().int(),
       selector: selectorSchema,
@@ -142,7 +139,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "targeting_keywords_update",
     description:
-      "Bulk-update targeting keywords (status, bid, text, matchType). Each entry must include id.",
+      "Updates targeting keywords in an ad group. Per Apple: each entry's id must belong to a keyword that exists inside the ad group in the URI; status and bidAmount are modifiable; partial updates are supported. In Maximize Conversions campaigns bidAmount cannot be changed to a non-zero/non-null value.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -161,7 +158,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "targeting_keywords_delete",
-    description: "Bulk-delete targeting keywords by ID.",
+    description:
+      "Deletes targeting keywords from an ad group in bulk. Per Apple: this is a soft deletion. Returns IntegerResponse.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -184,7 +182,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "targeting_keywords_delete_single",
     description:
-      "Delete a single targeting keyword by ID (uses Apple's REST DELETE variant).",
+      "Deletes one targeting keyword by id. Per Apple: this is a soft deletion. Returns VoidResponse.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -207,7 +205,8 @@ export const keywordTools: ToolDef[] = [
   // ---------- Ad-group-level negative keywords ----------
   {
     name: "adgroup_negative_keywords_create",
-    description: "Bulk-create negative keywords on an ad group.",
+    description:
+      "Creates negative keywords in a specific ad group. Per Apple: negative keywords prevent your ad from showing up in App Store searches and can belong to either a campaign or an ad group.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -226,7 +225,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "adgroup_negative_keywords_get",
-    description: "Fetch a single ad-group-level negative keyword by ID.",
+    description:
+      "Fetches a specific negative keyword in an ad group. Supports partial fetch.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -246,7 +246,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "adgroup_negative_keywords_list",
-    description: "List ad-group-level negative keywords (paginated).",
+    description:
+      "Fetches all negative keywords in an ad group. Supports partial fetch and pagination.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -269,7 +270,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "adgroup_negative_keywords_find",
     description:
-      "Find ad-group-level negative keywords across all ad groups in a campaign with a selector.",
+      "Finds negative keywords in different ad groups within the same campaign. Per Apple: if you don't specify any selector conditions, the API returns all negative keywords across all ad groups of the campaign.",
     inputShape: {
       campaignId: z.number().int(),
       selector: selectorSchema,
@@ -287,7 +288,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "adgroup_negative_keywords_update",
-    description: "Bulk-update ad-group-level negative keywords. Each entry must include id.",
+    description:
+      "Updates negative keywords in an ad group. Per Apple: each entry's id must belong to a negative keyword that exists inside the ad group in the URI; use PAUSED or ACTIVE for the status field; partial updates are supported.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -306,7 +308,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "adgroup_negative_keywords_delete",
-    description: "Bulk-delete ad-group-level negative keywords by ID.",
+    description:
+      "Deletes negative keywords from an ad group in bulk. Per Apple: this is a soft deletion. Returns IntegerResponse.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -330,7 +333,8 @@ export const keywordTools: ToolDef[] = [
   // ---------- Campaign-level negative keywords ----------
   {
     name: "campaign_negative_keywords_create",
-    description: "Bulk-create campaign-level negative keywords (apply across all ad groups).",
+    description:
+      "Creates negative keywords for a campaign (apply across all ad groups). Per Apple: duplicate keywords cause the payload response to indicate an error but the call still returns HTTP 200.",
     inputShape: {
       campaignId: z.number().int(),
       keywords: z.array(negativeKeywordSchema).min(1).max(1000),
@@ -348,7 +352,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "campaign_negative_keywords_get",
-    description: "Fetch a single campaign-level negative keyword by ID.",
+    description:
+      "Fetches a specific negative keyword in a campaign. Supports partial fetch.",
     inputShape: {
       campaignId: z.number().int(),
       keywordId: z.number().int(),
@@ -364,7 +369,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "campaign_negative_keywords_list",
-    description: "List campaign-level negative keywords (paginated).",
+    description:
+      "Fetches all negative keywords in a campaign. Supports partial fetch and pagination.",
     inputShape: {
       campaignId: z.number().int(),
       limit: limitField,
@@ -383,7 +389,7 @@ export const keywordTools: ToolDef[] = [
   {
     name: "campaign_negative_keywords_find",
     description:
-      "Find campaign-level negative keywords within a single campaign with a selector.",
+      "Fetches negative keywords for a campaign. Per Apple: if you don't specify any selector conditions, all negative keywords in the campaign return.",
     inputShape: {
       campaignId: z.number().int(),
       selector: selectorSchema,
@@ -401,7 +407,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "campaign_negative_keywords_update",
-    description: "Bulk-update campaign-level negative keywords.",
+    description:
+      "Updates negative keywords in a campaign. Per Apple: each entry's id must belong to a negative keyword that exists inside the campaign in the URI; use PAUSED or ACTIVE for the status field; partial updates are supported. Negative keywords can be created in both standard and automated ad groups.",
     inputShape: {
       campaignId: z.number().int(),
       keywords: z.array(negativeKeywordUpdateSchema).min(1).max(1000),
@@ -419,7 +426,8 @@ export const keywordTools: ToolDef[] = [
   },
   {
     name: "campaign_negative_keywords_delete",
-    description: "Bulk-delete campaign-level negative keywords by ID.",
+    description:
+      "Deletes negative keywords from a campaign by id. Returns IntegerResponse. Apple's documentation does not state whether this is a soft or hard delete.",
     inputShape: {
       campaignId: z.number().int(),
       keywordIds: z.array(z.number().int()).min(1).max(1000),

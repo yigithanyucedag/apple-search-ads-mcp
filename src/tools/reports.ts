@@ -40,42 +40,28 @@ const reportSelectorSchema = z
       })
       .optional(),
   })
-  .describe("Selector controlling sort, filtering, and pagination of the report rows.");
+  .describe("Selector for sort, filter, and pagination of report rows.");
 
-const groupByEnum = z
-  .enum([
-    "adminArea",
-    "ageRange",
-    "countryCode",
-    "countryOrRegion",
-    "deviceClass",
-    "gender",
-    "locality",
-  ])
-  .describe(
-    "Pivot dimension. Apple restricts which combinations are valid: with demographic (gender/ageRange) you must omit granularity and set returnRowTotals=false.",
-  );
+const groupByEnum = z.enum([
+  "adminArea",
+  "ageRange",
+  "countryCode",
+  "countryOrRegion",
+  "deviceClass",
+  "gender",
+  "locality",
+]);
 
 const reportBaseShape = {
-  startTime: z
-    .string()
-    .describe(
-      "Inclusive start. Format YYYY-MM-DD for DAILY/WEEKLY/MONTHLY, or ISO 8601 datetime for HOURLY.",
-    ),
-  endTime: z.string().describe("Inclusive end."),
-  granularity: z
-    .enum(["HOURLY", "DAILY", "WEEKLY", "MONTHLY"])
-    .optional()
-    .describe("Defaults to none (single aggregated row per entity)."),
+  startTime: z.string(),
+  endTime: z.string(),
+  granularity: z.enum(["HOURLY", "DAILY", "WEEKLY", "MONTHLY"]).optional(),
   timeZone: z
     .enum(["UTC", "ORTZ"])
     .optional()
     .describe("ORTZ = the org's reporting timezone."),
   selector: reportSelectorSchema.optional(),
-  groupBy: z
-    .array(groupByEnum)
-    .optional()
-    .describe("Pivot the report along these dimensions."),
+  groupBy: z.array(groupByEnum).optional(),
   returnRecordsWithNoMetrics: z.boolean().optional(),
   returnRowTotals: z.boolean().optional(),
   returnGrandTotals: z.boolean().optional(),
@@ -99,8 +85,7 @@ export const reportTools: ToolDef[] = [
   {
     name: "reports_campaigns",
     description:
-      "Campaign-level performance report. Returns rows with impressions, taps, installs, spend, " +
-      "CPT/CPM/CPI, conversion rate, etc. Pass groupBy to pivot by country, device, age, gender.",
+      "Fetches reports for campaigns. Per Apple: all ReportingCampaign fields are available to the orderBy Selector except servingStateReasons, app, app:{appName}, and app:{adamId}. In Maximize Conversions campaigns you can filter and order by biddingStrategy and targetCpa.",
     inputShape: { ...reportBaseShape, orgId: orgIdField },
     handler: async (input, { client }) => {
       const res = await client.request({
@@ -114,7 +99,8 @@ export const reportTools: ToolDef[] = [
   },
   {
     name: "reports_adgroups",
-    description: "Ad-group-level report within a single campaign.",
+    description:
+      "Fetches reports for ad groups within a campaign. Per Apple: all ReportingAdGroup fields are available to the orderBy Selector except adGroupServingStateReasons. In Maximize Conversions campaigns defaultBidAmount is 0 and cpaGoal is null; you can filter and order by biddingStrategy and automatedKeywordsRequired.",
     inputShape: {
       campaignId: z.number().int(),
       ...reportBaseShape,
@@ -133,7 +119,7 @@ export const reportTools: ToolDef[] = [
   {
     name: "reports_keywords_in_campaign",
     description:
-      "Keyword report rolled up across all ad groups in one campaign.",
+      "Fetches reports for targeting keywords within a campaign. Per Apple: all ReportingKeyword fields are available to the orderBy Selector. In Maximize Conversions campaigns bidAmount is 0 for keywords.",
     inputShape: {
       campaignId: z.number().int(),
       ...reportBaseShape,
@@ -151,7 +137,8 @@ export const reportTools: ToolDef[] = [
   },
   {
     name: "reports_keywords_in_adgroup",
-    description: "Keyword report scoped to a single ad group.",
+    description:
+      "Fetches reports for targeting keywords within an ad group. Per Apple: built for high-volume keyword reporting; all ReportingKeyword fields are available to the orderBy Selector.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -171,8 +158,7 @@ export const reportTools: ToolDef[] = [
   {
     name: "reports_search_terms_in_campaign",
     description:
-      "Search-terms report rolled up across all ad groups in a campaign. " +
-      "Reveals what users actually typed — harvest new keywords or negatives from here.",
+      "Fetches reports for search terms within a campaign. Per Apple: minimum 10 impressions for a row to appear; only timeZone=ORTZ is supported; all ReportingSearchTerm fields are available to the orderBy Selector.",
     inputShape: {
       campaignId: z.number().int(),
       ...reportBaseShape,
@@ -190,7 +176,8 @@ export const reportTools: ToolDef[] = [
   },
   {
     name: "reports_search_terms_in_adgroup",
-    description: "Search-terms report scoped to a single ad group.",
+    description:
+      "Fetches reports for search terms within an ad group. Per Apple: built for high-volume search-term reporting; minimum 10 impressions for a row to appear; only timeZone=ORTZ is supported.",
     inputShape: {
       campaignId: z.number().int(),
       adGroupId: z.number().int(),
@@ -210,7 +197,7 @@ export const reportTools: ToolDef[] = [
   {
     name: "reports_ads_in_campaign",
     description:
-      "Ad-level performance (per Custom Product Page / creative variation) rolled up across the campaign.",
+      "Fetches ad performance data within a campaign. Per Apple: orderBy is required for ad-level report requests; groupBy is restricted to the CountryOrRegion field. Historical APPSTORE_SEARCH_TAB ad-level metrics from before API v5.2 are reported under adId=-1; after v5.2 default product page ads are reported under real adIds. Installations can be mapped by adId via the AdServices attribution framework.",
     inputShape: {
       campaignId: z.number().int(),
       ...reportBaseShape,
