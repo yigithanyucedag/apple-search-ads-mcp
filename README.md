@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-brightgreen)](package.json)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
-[![Glama MCP server](https://glama.ai/mcp/servers/yigithanyucedag/apple-search-ads-mcp/badges/score.svg)](https://glama.ai/mcp/servers/yigithanyucedag/apple-search-ads-mcp)
+[![Glama MCP server](https://glama.ai/mcp/servers/AppVisionOS/apple-search-ads-mcp/badges/score.svg)](https://glama.ai/mcp/servers/AppVisionOS/apple-search-ads-mcp)
 
 A Model Context Protocol (MCP) server that wraps the **full Apple Search Ads (now Apple Ads) Campaign Management API v5**. 74 typed tools, 1:1 mapping to every documented v5 endpoint — campaigns, ad groups, ads, creatives, custom product pages, keywords, negative keywords, reports, impression-share reports, budget orders, ACLs, geo/app search, app metadata, rejection-reason audits — plus a raw passthrough for any future endpoints.
 
