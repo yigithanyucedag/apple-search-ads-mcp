@@ -5,10 +5,30 @@ import { AppleSearchAdsClient, AppleSearchAdsApiError } from "./client.js";
 import { loadConfig } from "./config.js";
 import { allTools } from "./tools/index.js";
 
+/**
+ * Lazy client factory: defer credential validation until the first tool call.
+ * This lets the server start (and respond to MCP introspection like tools/list)
+ * even when env vars are missing — important for Docker image scanners and
+ * directory listings (Glama, etc) that probe the server without secrets.
+ */
+function createLazyClient(): () => AppleSearchAdsClient {
+  let cached: AppleSearchAdsClient | undefined;
+  let configError: Error | undefined;
+  return () => {
+    if (cached) return cached;
+    if (configError) throw configError;
+    try {
+      cached = new AppleSearchAdsClient(loadConfig());
+      return cached;
+    } catch (err) {
+      configError = err instanceof Error ? err : new Error(String(err));
+      throw configError;
+    }
+  };
+}
+
 async function main(): Promise<void> {
-  const config = loadConfig();
-  const client = new AppleSearchAdsClient(config);
-  const ctx = { client };
+  const getClient = createLazyClient();
 
   const server = new McpServer({
     name: "apple-search-ads-mcp",
@@ -24,9 +44,10 @@ async function main(): Promise<void> {
       },
       async (rawInput: unknown) => {
         try {
+          const client = getClient();
           const result = await tool.handler(
             rawInput as Parameters<typeof tool.handler>[0],
-            ctx,
+            { client },
           );
           return {
             content: [

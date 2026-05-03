@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.github
+.env
+.env.local
+.env.example
+*.log
+*.p8
+private-key*.pem
+.DS_Store
+README.md
+CHANGELOG.md
+LICENSE
+.npmignore
+.gitignore
