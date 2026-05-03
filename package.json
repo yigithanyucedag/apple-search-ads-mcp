@@ -1,6 +1,6 @@
 {
   "name": "apple-search-ads-mcp",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Model Context Protocol server exposing the full Apple Search Ads / Apple Ads Campaign Management API v5 (74 tools, 1:1 endpoint coverage).",
   "type": "module",
   "bin": {

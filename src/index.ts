@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 
   const server = new McpServer({
     name: "apple-search-ads-mcp",
-    version: "0.1.0",
+    version: "1.0.0",
   });
 
   for (const tool of allTools) {
